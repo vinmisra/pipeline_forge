@@ -1,17 +1,18 @@
 # Pipeline Forge
 
-A Python package for building and managing data processing pipelines.
+A Python package for data processing with expensive and precious LLM operations.
 
 Goals:
 
-- iterating on individual stages at very limited volume to test out / tune expensive data processing operations (e.g. LLM calls).
-- "baking" a portable pipeline that can then be run at scale.
-- supporting integrations into arbitrary data sources, destinations, and data processing tools.
+- iterating on individual stages and pipelines at limited volume to test out / tune expensive data processing operations (e.g. LLM calls).
+- "baking" a pipeline that can then be run at scale.
+- (aspirational) supporting integrations into arbitrary data sources, caching mechanisms, destinations, data processing stages, and compute infrastructure.
 
 Non-goal:
 
 - A general purpose data processing framework / library.
-- handling pipelines that do not involve LLMs as a core processing component.
+- constructing pipelines that do not involve LLMs as a core processing component.
+- Realtime / tight SLAs.
 
 ## Installation
 
