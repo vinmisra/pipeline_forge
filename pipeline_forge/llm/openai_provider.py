@@ -12,6 +12,7 @@ class OpenAIProvider(LLMProvider):
         self,
         api_key: Optional[str] = None,
         organization: Optional[str] = None,
+        base_url: Optional[str] = None,
         **kwargs
     ):
         """
@@ -23,7 +24,11 @@ class OpenAIProvider(LLMProvider):
             **kwargs: All parameters for the OpenAI API (model, temperature, etc.)
         """
         # Client initialization params
-        client_kwargs = {"api_key": api_key, "organization": organization}
+        client_kwargs = {
+            "api_key": api_key,
+            "organization": organization,
+            "base_url": base_url,
+        }
         # Filter out None values
         client_kwargs = {k: v for k, v in client_kwargs.items() if v is not None}
 
@@ -35,7 +40,7 @@ class OpenAIProvider(LLMProvider):
 
         # Make sure we have a model specified
         if "model" not in self.params:
-            self.params["model"] = "gpt-3.5-turbo"
+            self.params["model"] = "gpt-4o-mini"
 
     async def generate(self, messages: List[Dict[str, str]]) -> str:
         """

@@ -20,29 +20,7 @@ class Pipeline:
         from pipeline_forge.stage import Stage
 
         self.stages = stages
-        self._dependency_graph = self._build_dependency_graph()
         self._stage_by_output = self._index_stages_by_output()
-
-    def _build_dependency_graph(self) -> nx.DiGraph:
-        """Build a directed graph of column dependencies."""
-        G = nx.DiGraph()
-
-        # Add all columns as nodes
-        all_columns = set()
-        for stage in self.stages:
-            all_columns.update(stage.get_dependencies())
-            all_columns.update(stage.get_outputs())
-
-        for col in all_columns:
-            G.add_node(col)
-
-        # Add dependencies as edges
-        for stage in self.stages:
-            for out_col in stage.get_outputs():
-                for in_col in stage.get_dependencies():
-                    G.add_edge(in_col, out_col)
-
-        return G
 
     def _index_stages_by_output(self) -> Dict[str, "Stage"]:
         """Create a mapping from output column to the stage that produces it."""
