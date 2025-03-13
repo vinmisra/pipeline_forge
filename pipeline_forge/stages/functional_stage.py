@@ -34,7 +34,7 @@ class FunctionalStage(Stage):
         config_str = json.dumps(config, sort_keys=True)
         return hashlib.md5(config_str.encode()).hexdigest()
 
-    async def process(
+    async def _process_post_filter(
         self,
         data: pd.DataFrame,
         llm_provider: LLMProvider,
@@ -51,9 +51,6 @@ class FunctionalStage(Stage):
 
         # Process each row
         for idx, row in result.iterrows():
-            if not self._should_process_row(row):
-                continue
-
             if cache:
                 cache_key = self._get_cache_key(row)
                 cached_value = cache.get(cache_key)

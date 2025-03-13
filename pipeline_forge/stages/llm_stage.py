@@ -21,7 +21,7 @@ class LLMStage(Stage):
         self.conversation_template = conversation_template
         super().__init__(input_columns, output_columns, filter_colname)
 
-    async def process(
+    async def _process_post_filter(
         self,
         data: pd.DataFrame,
         llm_provider: LLMProvider,
@@ -37,24 +37,15 @@ class LLMStage(Stage):
             if col not in result.columns:
                 result[col] = None
 
-        # Process each row
-        tasks = []
-        indices = []
+        # Process each row concurrently
+        tasks = [
+            self._process_row(row, llm_provider, cache) for _, row in result.iterrows()
+        ]
+        outputs = await asyncio.gather(*tasks)
 
-        for idx, row in result.iterrows():
-            if not self._should_process_row(row):
-                continue
-
-            tasks.append(self._process_row(row, llm_provider, cache))
-            indices.append(idx)
-
-        # Execute all tasks concurrently
-        if tasks:
-            outputs = await asyncio.gather(*tasks)
-
-            # Update dataframe with results
-            for idx, output in zip(indices, outputs):
-                result.at[idx, self.output_columns[0]] = output[0]
+        # Update dataframe with results
+        for idx, output in enumerate(outputs):
+            result.at[idx, self.output_columns[0]] = output[0]
 
         return result
 
