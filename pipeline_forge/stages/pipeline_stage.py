@@ -15,8 +15,11 @@ class PipelineStage(Stage):
         pipeline: Pipeline,
         output_columns: List[str],
         filter_colname: Optional[str] = None,
+        filter_fallback_value: Any = None,
     ):
-        super().__init__(input_columns, output_columns, filter_colname)
+        super().__init__(
+            input_columns, output_columns, filter_colname, filter_fallback_value
+        )
         self.pipeline = pipeline
 
     async def _process_post_filter(

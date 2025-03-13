@@ -18,9 +18,12 @@ class FunctionalStage(Stage):
         output_columns: list[str],
         function: Callable[[Any], Any],
         filter_colname: str | None = None,
+        filter_fallback_value: Any = None,
     ):
         self.function = function
-        super().__init__(input_columns, output_columns, filter_colname)
+        super().__init__(
+            input_columns, output_columns, filter_colname, filter_fallback_value
+        )
 
     def _get_cache_key(self, row: pd.Series) -> Hashable:
         """Generate a unique key for the cache based on the details of this stage and the input row"""
@@ -95,10 +98,12 @@ class FilterStage(FunctionalStage):
         function: Callable[[Any], bool],
         output_columns: list[str],
         filter_colname: str | None = None,
+        filter_fallback_value: Any = None,
     ):
         super().__init__(
             input_columns=input_columns,
             output_columns=output_columns,
             function=function,
             filter_colname=filter_colname,
+            filter_fallback_value=filter_fallback_value,
         )
