@@ -16,10 +16,13 @@ class LLMStage(Stage):
         conversation_template: list[dict[str, str]],
         output_columns: list[str],
         filter_colname: str | None = None,
+        filter_fallback_value: Any = None,
     ):
         assert len(output_columns) == 1, "LLMStage must have exactly one output column"
         self.conversation_template = conversation_template
-        super().__init__(input_columns, output_columns, filter_colname)
+        super().__init__(
+            input_columns, output_columns, filter_colname, filter_fallback_value
+        )
 
     async def _process_post_filter(
         self,
