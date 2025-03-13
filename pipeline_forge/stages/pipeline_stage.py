@@ -19,7 +19,7 @@ class PipelineStage(Stage):
         super().__init__(input_columns, output_columns, filter_colname)
         self.pipeline = pipeline
 
-    async def process(
+    async def _process_post_filter(
         self,
         data: pd.DataFrame,
         llm_provider: LLMProvider | None = None,
@@ -27,40 +27,7 @@ class PipelineStage(Stage):
         **kwargs
     ) -> pd.DataFrame:
         """Process through the nested pipeline."""
-        result = data.copy()
-
-        # Filter rows to process if needed
-        if self.filter_colname is not None:
-            rows_to_process = result[result[self.filter_colname]].index
-            if len(rows_to_process) == 0:
-                # Initialize output columns with None
-                for col in self.output_columns:
-                    if col not in result.columns:
-                        result[col] = None
-                return result
-
-            # Process only the filtered subset
-            subset = result.loc[rows_to_process].copy()
-            processed = await self.pipeline.run(
-                subset, llm_provider=llm_provider, cache=cache, **kwargs
-            )
-
-            # Merge results back
-            for col in self.output_columns:
-                if col in processed.columns:
-                    result.loc[rows_to_process, col] = processed[col]
-        else:
-            # Process all rows
-            processed = await self.pipeline.run(
-                result[self.input_columns],
-                llm_provider=llm_provider,
-                cache=cache,
-                **kwargs,
-            )
-
-            # Add new columns to result
-            for col in self.output_columns:
-                if col in processed.columns:
-                    result[col] = processed[col]
-
-        return result
+        data = await self.pipeline.run(
+            data, llm_provider=llm_provider, cache=cache, **kwargs
+        )
+        return data[self.input_columns + self.output_columns]

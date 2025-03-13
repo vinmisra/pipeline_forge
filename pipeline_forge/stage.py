@@ -16,16 +16,48 @@ class Stage(ABC):
         input_columns: list[str],
         output_columns: list[str],
         filter_colname: str | None = None,
+        filter_fallback_value: Any = None,
     ):
         self.input_columns = input_columns
         self.output_columns = output_columns
         self.filter_colname = filter_colname
+        self.filter_fallback_value = filter_fallback_value
 
-    @abstractmethod
     async def process(
         self, data: pd.DataFrame, llm_provider: LLMProvider, cache: Cache | None = None
     ) -> pd.DataFrame:
         """Process the input data and return a DataFrame with new columns."""
+        assert (
+            self.filter_colname is None or self.filter_colname in data.columns
+        ), f"Filter column {self.filter_colname} not found in dataset {data.head()}"
+
+        if self.filter_colname is None:
+            return await self._process_post_filter(data, llm_provider, cache)
+        else:
+            # initialize output columns with filter fallback value
+            result = data.copy()
+            for col in self.output_columns:
+                result[col] = self.filter_fallback_value
+
+            # filter data and process only those rows
+            filtered_data = data[data[self.filter_colname]].copy()
+            if not filtered_data.empty:
+                processed = await self._process_post_filter(
+                    filtered_data, llm_provider, cache
+                )
+
+                # Update only the filtered rows in the result
+                for idx in processed.index:
+                    for col in self.output_columns:
+                        result.loc[idx, col] = processed.loc[idx, col]
+
+            return result
+
+    @abstractmethod
+    async def _process_post_filter(
+        self, data: pd.DataFrame, llm_provider: LLMProvider, cache: Cache | None = None
+    ) -> pd.DataFrame:
+        """Process the data after filtering."""
         pass
 
     def get_dependencies(self) -> Set[str]:
