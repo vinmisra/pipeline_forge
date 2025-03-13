@@ -26,6 +26,8 @@ async def test_dependency_resolution():
     # Create stages with dependencies:
     # input_value -> A -> B -> C
     #             -> D
+    # input_value -> filter_flag 
+    # filter_flag + B -> E
 
     stage_a = FunctionalStage(
         input_columns=["input_value"],
@@ -47,35 +49,72 @@ async def test_dependency_resolution():
         output_columns=["D"],
     )
 
-    # Create pipeline with stages in arbitrary order
-    pipeline = Pipeline(stages=[stage_c, stage_a, stage_d, stage_b])
+    # Stage that computes a filter flag based on input_value
+    filter_stage = FunctionalStage(
+        input_columns=["input_value"],
+        function=lambda x: x % 2 == 1,  # True for odd numbers
+        output_columns=["filter_flag"],
+    )
 
-    # Run just stage C - should compute A and B as dependencies
+    # Stage with computed filter - only processes when filter_flag is True
+    stage_e = FunctionalStage(
+        input_columns=["B"],
+        function=lambda x: x**2,
+        output_columns=["E"],
+        filter_colname="filter_flag",
+    )
+
+    # Create pipeline with stages in arbitrary order
+    pipeline = Pipeline(
+        stages=[stage_a, stage_b, stage_c, stage_d, filter_stage, stage_e]
+    )
+
+    # Run just stage E - should compute A, B, and filter_flag as dependencies
     result = await pipeline.run_stage(
-        stage=stage_c, llm_provider=MockProvider(), data=data, cache=InMemoryCache()
+        stage=stage_e, llm_provider=MockProvider(), data=data, cache=InMemoryCache()
+    )
+
+    assert "A" in result.columns
+    assert "B" in result.columns
+    assert "filter_flag" in result.columns
+    assert "E" in result.columns
+    assert "C" not in result.columns
+    assert "D" not in result.columns
+
+    # Verify filtering worked correctly (only rows where filter_flag is True - odd input values)
+    assert result["filter_flag"].tolist() == [True, False, True, False]
+    assert result["E"].tolist() == [
+        49,
+        None,
+        121,
+        None,
+    ]  # B^2 where filter_flag is True
+
+    # Run full pipeline
+    result = await pipeline.run(
+        data, llm_provider=MockProvider(), cache=InMemoryCache()
     )
 
     assert "A" in result.columns
     assert "B" in result.columns
     assert "C" in result.columns
-    assert "D" not in result.columns
-
-    # Verify values are correct
-    assert result["A"].tolist() == [2, 4, 6, 8]  # input_value * 2
-    assert result["B"].tolist() == [7, 9, 11, 13]  # A + 5
-    assert result["C"].tolist() == [70, 90, 110, 130]  # B * 10
-
-    # Run full pipeline
-    result = await pipeline.run(data, llm_provider=MockProvider(), cache=InMemoryCache())
-
-    assert "A" in result.columns
-    assert "B" in result.columns
-    assert "C" in result.columns
     assert "D" in result.columns
+    assert "E" in result.columns
+    assert "filter_flag" in result.columns
 
     assert result["A"].tolist() == [2, 4, 6, 8]  # input_value * 2
     assert result["B"].tolist() == [7, 9, 11, 13]  # A + 5
     assert result["C"].tolist() == [70, 90, 110, 130]  # B * 10
     assert result["D"].tolist() == [100, 200, 300, 400]  # input_value * 100
-
-
+    assert result["filter_flag"].tolist() == [
+        True,
+        False,
+        True,
+        False,
+    ]  # odd numbers -> True
+    assert result["E"].tolist() == [
+        49,
+        None,
+        121,
+        None,
+    ]  # B^2 where filter_flag is True

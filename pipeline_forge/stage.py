@@ -30,7 +30,10 @@ class Stage(ABC):
 
     def get_dependencies(self) -> Set[str]:
         """Return the columns this stage depends on."""
-        return set(self.input_columns)
+        if self.filter_colname is None:
+            return set(self.input_columns)
+        else:
+            return set(self.input_columns + [self.filter_colname])
 
     def get_outputs(self) -> Set[str]:
         """Return the columns this stage produces."""
