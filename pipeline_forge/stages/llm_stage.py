@@ -47,7 +47,7 @@ class LLMStage(Stage):
         outputs = await asyncio.gather(*tasks)
 
         # Update dataframe with results
-        for idx, output in enumerate(outputs):
+        for idx, output in zip(result.index, outputs):
             result.at[idx, self.output_columns[0]] = output[0]
 
         return result
