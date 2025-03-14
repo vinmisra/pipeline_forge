@@ -62,6 +62,29 @@ import pytest
             [],
             {},
         ),
+        # Using filter_colname with custom fallback value
+        (
+            "with_filter_and_fallback",
+            {
+                "input_text": ["Hello, world!", "Test message", "Another message"],
+                "process_row": [True, False, True],
+            },
+            {
+                "input_columns": ["input_text"],
+                "conversation_template": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": "{input_text}"},
+                ],
+                "output_columns": ["response"],
+                "filter_colname": "process_row",
+                "filter_fallback_value": "SKIPPED",
+            },
+            ["Response for Hello, world!", "SKIPPED", "Response for Another message"],
+            {
+                "Hello, world!": "Response for Hello, world!",
+                "Another message": "Response for Another message",
+            },
+        ),
     ],
 )
 async def test_llm_stage_parametrized(
@@ -77,6 +100,7 @@ async def test_llm_stage_parametrized(
         conversation_template=stage_config["conversation_template"],
         output_columns=stage_config["output_columns"],
         filter_colname=stage_config["filter_colname"],
+        filter_fallback_value=stage_config.get("filter_fallback_value", None),
     )
 
     # Create mock provider with appropriate response mapping
